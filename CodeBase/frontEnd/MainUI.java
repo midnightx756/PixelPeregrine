@@ -1,3 +1,4 @@
+package frontEnd;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
@@ -110,7 +111,7 @@ public class MainUI {
     }
 
     // 🔥 FILE PICKER
-    static BufferedImage getImageFromUser() {
+    public static BufferedImage getImageFromUser() {
         JFileChooser chooser = new JFileChooser();
         int result = chooser.showOpenDialog(frame);
 
