@@ -86,8 +86,7 @@ public class MainUI {
 
             public boolean importData(TransferSupport support) {
                 try {
-                    List<File> files = (List<File>) support.getTransferable()
-                            .getTransferData(DataFlavor.javaFileListFlavor);
+                    List<File> files = (List<File>) support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
 
                     BufferedImage img = ImageIO.read(files.get(0));
                     showProcessPage(img);
