@@ -48,12 +48,14 @@ public class ImageEngine {
         return (299 * r + 587 * g + 114 * b) >> 10;
     }
 
-    public static String applyDitheringAndConvert(BufferedImage img) {
-        int w = img.getWidth();
+    public static String applyDitheringAndConvert(BufferedImage img, PrintConfig config) {
+       int w = img.getWidth();
         int h = img.getHeight();
-        float[][] errorBuffer = new float[h][w]; // Stores the "error" for each pixel
+        float[][] errorBuffer = new float[h][w];
         StringBuilder asciiArt = new StringBuilder();
-        String chars = "@#S%?*+;:,. "; // Darkest to lightest
+
+        // Use the dynamic string from config
+        String chars = config.densityChars;
 
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
