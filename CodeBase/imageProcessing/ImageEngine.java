@@ -37,4 +37,50 @@ public class ImageEngine {
 
         return scaledImage;
     }
+    //[Alpha][Red][Green][Blue]
+
+    public int getLuma(int pixel){
+        int r = (pixel >> 16) & 0xFF; // Shift right 16
+        int g = (pixel >> 8) & 0xFF;  // Shift right 8
+        int b = (pixel) & 0xFF;       // No shift
+        // Luminance formula: 0.299R + 0.587G + 0.114B
+        // We multiply by 1024 (1<<10) to use integer math instead of double
+        return (299 * r + 587 * g + 114 * b) >> 10;
+    }
+
+    public static String applyDitheringAndConvert(BufferedImage img) {
+        int w = img.getWidth();
+        int h = img.getHeight();
+        float[][] errorBuffer = new float[h][w]; // Stores the "error" for each pixel
+        StringBuilder asciiArt = new StringBuilder();
+        String chars = "@#S%?*+;:,. "; // Darkest to lightest
+
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                // 1. Get current pixel brightness + added error from neighbors
+                int rgb = img.getRGB(x, y);
+                float oldPixel = (float) getLuma(rgb) + errorBuffer[y][x];
+
+                // 2. Quantize (Binarize)
+                float newPixel = (oldPixel > 128) ? 255 : 0;
+
+                // 3. Calculate Error
+                float error = oldPixel - newPixel;
+
+                // 4. Distribute Error to neighbors (Floyd-Steinberg ratios)
+                if (x + 1 < w) errorBuffer[y][x + 1] += error * 7/16.0;
+                if (y + 1 < h) {
+                    if (x > 0) errorBuffer[y + 1][x - 1] += error * 3/16.0;
+                    errorBuffer[y + 1][x] += error * 5/16.0;
+                    if (x + 1 < w) errorBuffer[y + 1][x + 1] += error * 1/16.0;
+                }
+
+                // 5. Map to ASCII (using brightness)
+                int index = (int) (newPixel / 255.0 * (chars.length() - 1));
+                asciiArt.append(chars.charAt(index));
+            }
+            asciiArt.append("\n"); // New line at row end
+        }
+        return asciiArt.toString();
+    }
 }
