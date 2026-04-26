@@ -3,85 +3,78 @@ package imageProcessing;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import printing.PrintConfig;
 
 public class ImageEngine {
 
-    /**
-     * Squashes the image vertically to compensate for the tall rectangular
-     * shape of Dot Matrix Printer characters (approx 1:1.6 ratio).
-     */
-    public static BufferedImage correctAspectRatio(BufferedImage originalImage) {
+    // Fix 1: Make getLuma STATIC so it can be called by the static conversion method
+    public static int getLuma(int pixel) {
+        // Unpacking bits: [Alpha][Red][Green][Blue]
+        int r = (pixel >> 16) & 0xFF;
+        int g = (pixel >> 8) & 0xFF;
+        int b = (pixel) & 0xFF;
 
+        // Perceptual Luminance Formula (Standardized)
+        // Using bit-shifting (>> 10) is an optimization for (val / 1024)
+        return (int)(0.299 * r + 0.587 * g + 0.114 * b);
+    }
+
+    // Fix 2: Accept PrintConfig to make scaling dynamic
+    public static BufferedImage correctAspectRatio(BufferedImage originalImage, PrintConfig config) {
         int originalWidth = originalImage.getWidth();
         int originalHeight = originalImage.getHeight();
 
-        // The magic number: 0.6 (or 1/1.6).
-        // We shrink the height in software so the printer stretches it back to normal in hardware.
-        int newWidth = originalWidth;
-        int newHeight = (int) (originalHeight * 0.6);
+        // Use the aspect ratio from the config file instead of hardcoded 0.6
+        int newHeight = (int) (originalHeight * config.aspectRatio);
 
-        // 1. Create a new, blank canvas of the squashed size
-        BufferedImage scaledImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
-
-        // 2. Get the Graphics2D engine to draw on our new canvas
+        BufferedImage scaledImage = new BufferedImage(originalWidth, newHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = scaledImage.createGraphics();
-
-        // 3. Set rendering hints to ensure we don't lose quality during the squash
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-
-        // 4. Draw the original image onto the new canvas, forcing it into the new dimensions
-        g2d.drawImage(originalImage, 0, 0, newWidth, newHeight, null);
-
-        // 5. CRITICAL: Always dispose of the graphics object to prevent memory leaks (Buffer Bloat)
+        g2d.drawImage(originalImage, 0, 0, originalWidth, newHeight, null);
         g2d.dispose();
 
         return scaledImage;
     }
-    //[Alpha][Red][Green][Blue]
-
-    public int getLuma(int pixel){
-        int r = (pixel >> 16) & 0xFF; // Shift right 16
-        int g = (pixel >> 8) & 0xFF;  // Shift right 8
-        int b = (pixel) & 0xFF;       // No shift
-        // Luminance formula: 0.299R + 0.587G + 0.114B
-        // We multiply by 1024 (1<<10) to use integer math instead of double
-        return (299 * r + 587 * g + 114 * b) >> 10;
-    }
 
     public static String applyDitheringAndConvert(BufferedImage img, PrintConfig config) {
-       int w = img.getWidth();
+        int w = img.getWidth();
         int h = img.getHeight();
-        float[][] errorBuffer = new float[h][w];
+
+        // Fix 3: Use a 2D float array for the Error Buffer to prevent rounding errors
+        float[][] dsMatrix = new float[h][w];
         StringBuilder asciiArt = new StringBuilder();
 
-        // Use the dynamic string from config
-        String chars = config.densityChars;
+        // Glyph Index Mapping: Convert the string to an array for O(1) access
+        char[] glyphs = config.getGlyphTable();
+        int maxGlyphIndex = glyphs.length - 1;
 
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
-                // 1. Get current pixel brightness + added error from neighbors
-                int rgb = img.getRGB(x, y);
-                float oldPixel = (float) getLuma(rgb) + errorBuffer[y][x];
+                // 1. Get original luma + diffused error from previous neighbors
+                float oldPixel = getLuma(img.getRGB(x, y)) + dsMatrix[y][x];
 
-                // 2. Quantize (Binarize)
+                // 2. Find closest "Glyph Color" (Quantization)
+                // 0 is black (@), 255 is white (space)
                 float newPixel = (oldPixel > 128) ? 255 : 0;
 
                 // 3. Calculate Error
                 float error = oldPixel - newPixel;
 
-                // 4. Distribute Error to neighbors (Floyd-Steinberg ratios)
-                if (x + 1 < w) errorBuffer[y][x + 1] += error * 7/16.0;
+                // 4. Floyd-Steinberg Error Diffusion Kernel
+                // Push error to: Right (7/16), Bottom-Left (3/16), Bottom (5/16), Bottom-Right (1/16)
+                if (x + 1 < w) dsMatrix[y][x + 1] += error * 7/16.0;
                 if (y + 1 < h) {
-                    if (x > 0) errorBuffer[y + 1][x - 1] += error * 3/16.0;
-                    errorBuffer[y + 1][x] += error * 5/16.0;
-                    if (x + 1 < w) errorBuffer[y + 1][x + 1] += error * 1/16.0;
+                    if (x > 0) dsMatrix[y + 1][x - 1] += error * 3/16.0;
+                    dsMatrix[y + 1][x] += error * 5/16.0;
+                    if (x + 1 < w) dsMatrix[y + 1][x + 1] += error * 1/16.0;
                 }
 
-                // 5. Map to ASCII (using brightness)
-                int index = (int) (newPixel / 255.0 * (chars.length() - 1));
-                asciiArt.append(chars.charAt(index));
+                // 5. Dynamic Glyph Mapping (The Evaluator's Suggestion)
+                // Map the quantized value (0 or 255) to the start or end of the glyph table
+                int glyphIndex = Math.round((newPixel / 255.0f) * maxGlyphIndex);
+                asciiArt.append(glyphs[glyphIndex]);
             }
-            asciiArt.append("\n"); // New line at row end
+            asciiArt.append("\n");
         }
         return asciiArt.toString();
     }

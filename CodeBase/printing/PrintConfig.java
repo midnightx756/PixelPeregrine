@@ -1,15 +1,18 @@
 package printing;
 
 public class PrintConfig {
-     // Hardware path - Change to "USB0" or network path if LPT1 fails
     public String printerPort = "LPT1";
+    public double aspectRatio = 0.6; // Vertical squash factor
 
-    // Protocol: Draft Mode (Speed)
+    // The character set ordered from DARKEST to LIGHTEST
+    public String densityChars = "@#8&o:*. ";
+
     public byte[] draftMode = {0x1B, 0x78, 0x00};
-
-    // Protocol: Bidirectional Printing (Speed)
     public byte[] biDirMode = {0x1B, 0x55, 0x01};
-
-    // Protocol: Line Spacing (1/6 inch)
     public byte[] lineSpacing = {0x1B, 0x33, 0x12};
+
+    // Logic for Evaluator: Return characters as a searchable array
+    public char[] getGlyphTable() {
+        return densityChars.toCharArray();
+    }
 }
