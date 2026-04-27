@@ -5,6 +5,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.*;
 
+@SuppressWarnings("serial")
 public class HistoryUI extends JFrame {
 
     public HistoryUI() {

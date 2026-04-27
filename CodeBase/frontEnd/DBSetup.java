@@ -5,7 +5,15 @@ import java.sql.*;
 public class DBSetup {
     public static void main(String[] args) {
         try {
-            Connection conn = DriverManager.getConnection("jdbc:sqlite:print_history.db");
+        	
+        	Class.forName("org.sqlite.JDBC"); 
+        	// Use the current working directory explicitly
+        	String dbPath = System.getProperty("user.dir") + "/print_history.db";
+        	String url = "jdbc:sqlite:" + dbPath;
+
+        	System.out.println("Connecting to: " + url);
+        	Connection conn = DriverManager.getConnection(url);
+            //Connection conn = DriverManager.getConnection("jdbc:sqlite:print_history.db");
 
             Statement stmt = conn.createStatement();
 
