@@ -199,6 +199,7 @@ public class MainUI {
 
     static JFrame frame;
     static String lastConvertedAscii = ""; 
+    static String currentFileName = "Unknown_Image.png";
 
     public static void main(String[] args) {
 
@@ -275,13 +276,15 @@ public class MainUI {
 
             public boolean importData(TransferSupport support) {
                 try {
-                    List<File> files = (List<File>) support.getTransferable()
-                            .getTransferData(DataFlavor.javaFileListFlavor);
+                	List<File> files = (List<File>) support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                    File droppedFile = files.get(0);
 
-                    BufferedImage img = ImageIO.read(files.get(0));
+                    // 👉 CAPTURE THE NAME HERE
+                    currentFileName = droppedFile.getName();
+
+                    BufferedImage img = ImageIO.read(droppedFile);
                     showProcessPage(img);
                     return true;
-
                 } catch (Exception e) {
                     JOptionPane.showMessageDialog(frame, "Invalid file!");
                 }
@@ -307,6 +310,10 @@ public class MainUI {
         if (result == JFileChooser.APPROVE_OPTION) {
             try {
                 File file = chooser.getSelectedFile();
+                
+                // 👉 CAPTURE THE NAME HERE
+                currentFileName = file.getName(); 
+                
                 return ImageIO.read(file);
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(frame, "Error loading image!");
@@ -395,7 +402,7 @@ public class MainUI {
 
         	    // 2. LOG TO DATABASE (JDBC)
         	    // We use current time as execution time for the demo
-        	    DBHelper.insertRecord("Heist_Loot.png", success ? "SUCCESS" : "HW_FAILED", 0.45);
+        	    DBHelper.insertRecord(currentFileName, success ? "SUCCESS" : "HW_FAILED", 0.45);
 
         	    if (success) {
         	        status.setText("Job Printed Successfully");
