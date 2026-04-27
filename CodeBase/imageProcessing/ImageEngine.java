@@ -50,16 +50,21 @@ public class ImageEngine {
 
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
-                // 1. Get original luma + diffused error from previous neighbors
+            	// 1. Get current luma + error
                 float oldPixel = getLuma(img.getRGB(x, y)) + dsMatrix[y][x];
 
-                // 2. Find closest "Glyph Color" (Quantization)
-                // 0 is black (@), 255 is white (space)
-                float newPixel = (oldPixel > 128) ? 255 : 0;
+                // 2. Map to the character set IMMEDIATELY (0 to 255 scale)
+                // Clamp the value between 0 and 255 so it doesn't crash
+                float clamped = Math.max(0, Math.min(255, oldPixel));
+                int index = (int) (clamped / 255.0 * (glyphs.length - 1));
+                
+                // 3. Append the variety of symbols!
+                asciiArt.append(glyphs[index]);
 
-                // 3. Calculate Error
-                float error = oldPixel - newPixel;
-
+                // 4. Still calculate error for the NEXT pixels (The "Dither")
+                // We act as if we printed a 1-bit dot for the error math
+                float bitPixel = (oldPixel > 128) ? 255 : 0;
+                float error = oldPixel - bitPixel;
                 // 4. Floyd-Steinberg Error Diffusion Kernel
                 // Push error to: Right (7/16), Bottom-Left (3/16), Bottom (5/16), Bottom-Right (1/16)
                 if (x + 1 < w) dsMatrix[y][x + 1] += error * 7/16.0;
@@ -71,7 +76,7 @@ public class ImageEngine {
 
                 // 5. Dynamic Glyph Mapping (The Evaluator's Suggestion)
                 // Map the quantized value (0 or 255) to the start or end of the glyph table
-                int glyphIndex = Math.round((newPixel / 255.0f) * maxGlyphIndex);
+                int glyphIndex = Math.round((bitPixel / 255.0f) * maxGlyphIndex);
                 asciiArt.append(glyphs[glyphIndex]);
             }
             asciiArt.append("\n");

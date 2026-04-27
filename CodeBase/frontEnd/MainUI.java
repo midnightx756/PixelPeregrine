@@ -198,6 +198,7 @@ import java.util.List;
 public class MainUI {
 
     static JFrame frame;
+    static String lastConvertedAscii = ""; 
 
     public static void main(String[] args) {
 
@@ -348,18 +349,61 @@ public class MainUI {
 
         // 🔥 Convert
         convertBtn.addActionListener(e -> {
-            status.setText("Converting...");
-            status.setText("Conversion Done");
+            //status.setText("Converting...");
+            //status.setText("Conversion Done");
+        	 try {
+        	        status.setText("Processing Math Engine...");
+        	        
+        	        // 1. Fix Aspect Ratio (Your Lead Architect code)
+        	        printing.PrintConfig config = new printing.PrintConfig();
+        	        BufferedImage corrected = imageProcessing.ImageEngine.correctAspectRatio(image, config);
+        	        
+        	        // 2. Run Dithering (Your optimized Floyd-Steinberg)
+        	        lastConvertedAscii = imageProcessing.ImageEngine.applyDitheringAndConvert(corrected, config);
+        	        
+        	        // 3. Save to a Text File for verification (PBL Safety)
+        	        java.nio.file.Files.write(java.nio.file.Paths.get("converted_preview.txt"), lastConvertedAscii.getBytes());
+        	        
+        	        status.setText("Conversion Successful! Check converted_preview.txt");
+        	        JOptionPane.showMessageDialog(frame, "Image converted to ASCII and saved to file.");
+        	        
+        	    } catch (Exception ex) {
+        	        status.setText("Conversion Error!");
+        	        ex.printStackTrace();
+        	    }
         });
 
         // 🔥 Print
         printBtn.addActionListener(e -> {
-            status.setText("Printing...");
+            //status.setText("Printing...");
 
             // 👉 DATABASE INSERT CALL
-            DBHelper.insertRecord("image.png", "SUCCESS", 1.25);
+            //DBHelper.insertRecord("image.png", "SUCCESS", 1.25);
 
-            status.setText("Printed Successfully");
+            //status.setText("Printed Successfully");
+        	 if (lastConvertedAscii.isEmpty()) {
+        	        JOptionPane.showMessageDialog(frame, "Please 'Convert' the image first!");
+        	        return;
+        	    }
+
+        	    status.setText("Sending stream to Hardware...");
+        	    
+        	    printing.PrintConfig config = new printing.PrintConfig();
+        	    
+        	    // 1. Attempt to send to physical DMP
+        	    boolean success = printing.HardwareManager.sendToPrinter(lastConvertedAscii, config);
+
+        	    // 2. LOG TO DATABASE (JDBC)
+        	    // We use current time as execution time for the demo
+        	    DBHelper.insertRecord("Heist_Loot.png", success ? "SUCCESS" : "HW_FAILED", 0.45);
+
+        	    if (success) {
+        	        status.setText("Job Printed Successfully");
+        	        JOptionPane.showMessageDialog(frame, "Hardware Print Successful. Logged to DB.");
+        	    } else {
+        	        status.setText("Hardware Output Failed - Logged Failure");
+        	        JOptionPane.showMessageDialog(frame, "Hardware link failed (Check LPT1). Data logged to history.");
+        	    }
         });
 
         // 🔥 History Button

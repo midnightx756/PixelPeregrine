@@ -5,7 +5,7 @@ public class PrintConfig {
     public double aspectRatio = 0.6; // Vertical squash factor
 
     // The character set ordered from DARKEST to LIGHTEST
-    public String densityChars = "@#8&o:*. ";
+    public String densityChars = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\\\|()1{}[]?-_+~<>i!lI;:,\\\"^'. ";
 
     public byte[] draftMode = {0x1B, 0x78, 0x00};
     public byte[] biDirMode = {0x1B, 0x55, 0x01};

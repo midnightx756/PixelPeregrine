@@ -36,5 +36,24 @@ public class MainDriver {
         // STEP 7: ERROR HANDLING & SYSTEM SHUTDOWN
         // TODO: Implement a catch-all block to ensure the program exits gracefully
         // if any of the above steps throw an Exception.
+		
+		 try {
+	            System.out.println("[SYSTEM] Initializing Drivers...");
+	            // 1. Force Load SQLite Driver
+	            Class.forName("org.sqlite.JDBC");
+
+	            // 2. Initialize Database Schema (Runs your DBSetup logic)
+	            DBSetup.main(args);
+
+	            // 3. Launch UI
+	            System.out.println("[SYSTEM] Booting UI Layer...");
+	            MainUI.main(args);
+
+	        } catch (ClassNotFoundException e) {
+	            System.err.println("[CRITICAL] JDBC Driver not found! Check your JAR file.");
+	        } catch (Exception e) {
+	            System.err.println("[CRITICAL] System Failure: " + e.getMessage());
+	            e.printStackTrace();
+	        }
 	}
 }
